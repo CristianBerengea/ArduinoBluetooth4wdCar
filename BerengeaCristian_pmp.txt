@@ -1,0 +1,18 @@
+
+Bluetooth arduino 4wd car
+
+- camera video ( + sistem de ghidare cu servomotoare )
+- controlata de pe telefon
+- senzor ultrasonic ( masinuta se opreste daca are obstacol in fata)
+- semnalizari
+- claxon
+- aplicatie mobile care afiseaza video streaming + distanta citita de senzorul ultrasonic
+- masinuta va avea mai multe moduri de control
+- faruri automate
+
+Extra
+
+
+- controlul masinutei prin gesturile telefonului
+- controlul vitezei
+- afisarea numarului de rotații pe minut pentru un motor
