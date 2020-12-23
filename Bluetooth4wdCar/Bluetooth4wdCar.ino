@@ -19,7 +19,6 @@
 #define  signalingLeft A15
 
 char command = 'P';
-bool mode = true;
 bool tailLights_state = 1;
 
 int signalingRight_state = -1;
@@ -29,6 +28,12 @@ int x; //signaling pwm
 float duration;
 float cm1 = 2000; 
 float cm2 = 2000; 
+
+bool mode = true;
+bool V_forward = false;
+bool V_back = false;
+bool V_right = false;
+bool V_left = false;
 
 void setup() {
   Serial3.begin(9600);
@@ -53,33 +58,34 @@ void setup() {
   pinMode(echoPin2,INPUT);
 }
 
+
 void loop() {
   if(Serial3.available() > 0){ 
     command = Serial3.read();
      switch(command){
       case 'P':  
       sstop();
-      //V_forward = false;
-      //V_back = false;
+      V_forward = false;
+      V_back = false;
       break;
      case 'M':  
       mode = true;
       sstop();
-      //V_forward = false;
-      //V_back = false;
+      V_forward = false;
+      V_back = false;
      break;
      case 'N':  
       mode = false;
       sstop();
-      //V_forward = false;
-      //V_back = false;
+      V_forward = false;
+      V_back = false;
       break;
     case 'W':  
       if(mode) forward(128);
       else 
       {
-       // V_forward = true;
-       // V_back = false;
+        V_forward = true;
+        V_back = false;
       }   
       tailLights_state = 0;
       break;
@@ -87,8 +93,8 @@ void loop() {
        if(mode) back(255);
        else 
        {
-        //V_back = true;
-       // V_forward = false;
+        V_back = true;
+        V_forward = false;
        }
        tailLights_state = 0;
       break;
@@ -96,7 +102,7 @@ void loop() {
       if(mode) left(255);
       else 
       {
-        //V_left = true;
+        V_left = true;
       }
       tailLights_state = 0;
       break;
@@ -104,7 +110,7 @@ void loop() {
       if(mode) right(255);
       else 
       {
-        //V_right = true;
+        V_right = true;
       }
       tailLights_state = 0;
       break; 
@@ -112,8 +118,8 @@ void loop() {
       if(mode) sstop();
       else
       {
-       //V_right = false;
-        //V_left = false;
+        V_right = false;
+        V_left = false;
       }
       tailLights_state = 1;
       break;
@@ -129,6 +135,22 @@ void loop() {
     if(command == 'J') noTone(buzzer);
   }
 
+  if(!mode)
+  {
+    if(V_forward && V_left == 0 && V_right==0) forward(255);
+    if(V_back && V_left == 0 && V_right==0) back(255);
+    if(V_left) 
+    {
+      digitalWrite(in3,LOW);
+      digitalWrite(in4,LOW);
+    }
+    if(V_right) 
+    {
+      digitalWrite(in1,LOW);
+      digitalWrite(in2,LOW);
+    }
+  }
+
   if(tailLights_state == 1) analogWrite(tailLights, 255);
   else  analogWrite(tailLights, 0);
 
@@ -139,26 +161,28 @@ void loop() {
   x+=5;
   if(x==255) x=0;
 
-  if(command == 'W' || command == 'B' || command == 'P')
-  {
-    ultrasonic1();
-  }else if(command == 'S'){
+  if(command == 'S'){
     ultrasonic2();
+  }
+  else {
+    ultrasonic1();
   }
 
   if(cm1 <= 15 && command == 'W') 
     {
       sstop();
-      //V_forward = false;
+      V_forward = false;
+      V_back = false;
       tailLights_state = 1;
     }
    else if(cm2 <= 15 && command == 'S')
    {
       sstop();
-      
       tailLights_state = 1;
    }
 }
+
+
 
 void ultrasonic2()
 {
@@ -206,7 +230,7 @@ float microsecondsToCentimeters(float microseconds) {
   return microseconds / 29 / 2;
 }
 
-void forward(int speed)
+void back(int speed)
 {
     digitalWrite(in3,LOW);
     digitalWrite(in4,HIGH);
@@ -216,7 +240,7 @@ void forward(int speed)
     analogWrite(enA,speed);
 }
 
-void back(int speed)
+void forward(int speed)
 {
     digitalWrite(in3,HIGH);
     digitalWrite(in4,LOW);
