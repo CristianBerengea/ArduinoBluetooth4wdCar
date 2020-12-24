@@ -35,6 +35,9 @@ bool V_back = false;
 bool V_right = false;
 bool V_left = false;
 
+volatile int count;
+volatile float mps;
+
 void setup() {
   Serial3.begin(9600);
   Serial3.setTimeout(30);
@@ -56,6 +59,22 @@ void setup() {
   pinMode(echoPin1,INPUT);
   pinMode(trigPin2,OUTPUT);
   pinMode(echoPin2,INPUT);
+
+  //1 second counter
+  cli();
+  TCCR1A = 0;
+  TCCR1B = 0; 
+
+  OCR1A = 15624;
+  TCCR1B |= (1 << WGM12);
+  
+  TCCR1B |= (1 << CS10);
+  TCCR1B |= (1 << CS12); 
+  
+  TIMSK1 |= (1 << OCIE1A); 
+  sei();
+
+   attachInterrupt(digitalPinToInterrupt(18), counter, RISING);
 }
 
 
@@ -182,6 +201,10 @@ void loop() {
    }
 }
 
+void counter()
+{
+  count++;
+}
 
 
 void ultrasonic2()
@@ -277,3 +300,25 @@ void sstop()
     digitalWrite(in1,LOW);
     digitalWrite(in2,LOW);
 }
+
+ISR(TIMER1_COMPA_vect)
+{
+  if(cm1<=200)
+  {
+   Serial3.print(cm1);
+   Serial3.print(" cm    ");
+  }
+  else
+  {
+    Serial3.println("Out of range");
+  }
+  
+  count=count/20;
+  Serial3.print(count);
+  Serial3.print(" rps ");
+  
+  mps=count*21/100;
+  Serial3.print(mps);
+  Serial3.print(" mps ");
+  count=0;
+} 
