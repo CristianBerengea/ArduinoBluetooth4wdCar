@@ -18,6 +18,10 @@
 #define  signalingRight A14
 #define  signalingLeft A15
 
+#define lights 38
+
+#define photocell A8
+
 char command = 'P';
 bool tailLights_state = 1;
 
@@ -29,7 +33,7 @@ float duration;
 float cm1 = 2000; 
 float cm2 = 2000; 
 
-bool mode = true;
+bool mode = true; // If mode is false the car motion is continuous, the car the car will only stop when the break button is presse
 bool V_forward = false;
 bool V_back = false;
 bool V_right = false;
@@ -37,6 +41,11 @@ bool V_left = false;
 
 volatile int count;
 volatile float mps;
+
+int mspeed = 255;
+int newspeed;
+
+int photocellReading;
 
 void setup() {
   Serial3.begin(9600);
@@ -100,7 +109,7 @@ void loop() {
       V_back = false;
       break;
     case 'W':  
-      if(mode) forward(128);
+      if(mode) forward(mspeed);
       else 
       {
         V_forward = true;
@@ -109,7 +118,7 @@ void loop() {
       tailLights_state = 0;
       break;
     case 'S':  
-       if(mode) back(255);
+       if(mode) back(mspeed);
        else 
        {
         V_back = true;
@@ -118,7 +127,7 @@ void loop() {
        tailLights_state = 0;
       break;
     case 'A':
-      if(mode) left(255);
+      if(mode) left(mspeed);
       else 
       {
         V_left = true;
@@ -126,7 +135,7 @@ void loop() {
       tailLights_state = 0;
       break;
     case 'D':
-      if(mode) right(255);
+      if(mode) right(mspeed);
       else 
       {
         V_right = true;
@@ -148,6 +157,18 @@ void loop() {
       case 'Z':
       signalingLeft_state = signalingLeft_state * -1;
       break;  
+      case 'V':
+      while(Serial3.available()<3);
+      char s = Serial3.read();
+      char z = Serial3.read();
+      char u = Serial3.read();
+      newspeed = ((int)s-48)*100+((int)z-48)*10+((int)u-48);
+      if(newspeed>=100 &&  newspeed<=255)
+      {
+        mspeed=newspeed;
+      }
+      Serial.println(mspeed);
+      break; 
     }
 
     if(command == 'H') tone(buzzer,450);
@@ -156,8 +177,8 @@ void loop() {
 
   if(!mode)
   {
-    if(V_forward && V_left == 0 && V_right==0) forward(255);
-    if(V_back && V_left == 0 && V_right==0) back(255);
+    if(V_forward && V_left == 0 && V_right==0) forward(mspeed);
+    if(V_back && V_left == 0 && V_right==0) back(mspeed);
     if(V_left) 
     {
       digitalWrite(in3,LOW);
@@ -170,6 +191,11 @@ void loop() {
     }
   }
 
+  photocellReading = analogRead(photocell);
+  if(photocellReading <500)  analogWrite(lights, 255);
+  else  analogWrite(lights, 0);
+  
+
   if(tailLights_state == 1) analogWrite(tailLights, 255);
   else  analogWrite(tailLights, 0);
 
@@ -180,7 +206,7 @@ void loop() {
   x+=5;
   if(x==255) x=0;
 
-  if(command == 'S'){
+  if(command == 'S'){ // if direction is back ultrasonic sensor from the back is activated
     ultrasonic2();
   }
   else {
@@ -218,14 +244,10 @@ void ultrasonic2()
 
   duration = pulseIn(echoPin2, HIGH); 
   cm2 = microsecondsToCentimeters(duration);
-  //if(cm1<=200 || cm2<=200)
-  //{
+  
     Serial.print(cm2);
     Serial.println("        cm2");
-  //}else
-  //{
-  //  Serial.println("Out of range      ");
-  //}*/
+ 
 }
 void ultrasonic1()
 {
@@ -237,14 +259,7 @@ void ultrasonic1()
 
   duration = pulseIn(echoPin1, HIGH); 
   cm1 = microsecondsToCentimeters(duration);
-  //if(cm1<=200 || cm2<=200)
-  //{
-    Serial.print(cm1);
-    Serial.println("        cm1");
-  //}else
-  //{
-  //  Serial.println("Out of range      ");
-  //}*/
+ 
 }
 float microsecondsToCentimeters(float microseconds) {
   // The speed of sound is 340 m/s or 29 microseconds per centimeter.
@@ -301,7 +316,7 @@ void sstop()
     digitalWrite(in2,LOW);
 }
 
-ISR(TIMER1_COMPA_vect)
+ISR(TIMER1_COMPA_vect) // send to mobile at an interval of one second
 {
   if(cm1<=200)
   {
@@ -317,7 +332,7 @@ ISR(TIMER1_COMPA_vect)
   Serial3.print(count);
   Serial3.print(" rps ");
   
-  mps=count*21/100;
+  mps=count*10/100; // rotation per second * wheel circumference (cm) 
   Serial3.print(mps);
   Serial3.print(" mps ");
   count=0;
